@@ -6,7 +6,7 @@ FROM       ubuntu:latest
 MAINTAINER Alessandro Tanasi <alessandro@tanasi.it>
 
 # Update repositories.
-RUN apt-get update
+RUN DEBIAN_FRONTEND=noninteractive apt-get update
 
 # Install software
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y git locales
@@ -21,16 +21,16 @@ RUN export LANGUAGE=en_US.UTF-8 && \
     DEBIAN_FRONTEND=noninteractive dpkg-reconfigure locales
 
 # Setup python stuff.
-RUN apt-get install -y python-pip build-essential python-dev python-gi
-RUN apt-get install -y libgexiv2-2 gir1.2-gexiv2-0.10
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y python-pip build-essential python-dev python-gi
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y libgexiv2-2 gir1.2-gexiv2-0.10
 # Pillow
-RUN apt-get install -y libtiff4-dev libjpeg8-dev zlib1g-dev libfreetype6-dev liblcms2-dev libwebp-dev tcl8.5-dev tk8.5-dev python-tk
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y libtiff4-dev libjpeg8-dev zlib1g-dev libfreetype6-dev liblcms2-dev libwebp-dev tcl8.5-dev tk8.5-dev python-tk
 
 # Install Apache.
-RUN apt-get install -y apache2 libapache2-mod-wsgi
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y apache2 libapache2-mod-wsgi
 
 # Install and configure wkhtmltopdf
-RUN apt-get install -y wkhtmltopdf xvfb
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y wkhtmltopdf xvfb
 RUN printf '#!/bin/bash\nxvfb-run --server-args="-screen 0, 1024x768x24" /usr/bin/wkhtmltopdf $*' > /usr/bin/wkhtmltopdf.sh
 RUN chmod a+x /usr/bin/wkhtmltopdf.sh
 RUN ln -s /usr/bin/wkhtmltopdf.sh /usr/local/bin/wkhtmltopdf
@@ -38,11 +38,11 @@ RUN ln -s /usr/bin/wkhtmltopdf.sh /usr/local/bin/wkhtmltopdf
 # Install MongoDB.
 RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7F0CEB10
 RUN echo "deb http://repo.mongodb.org/apt/ubuntu "$(lsb_release -sc)"/mongodb-org/3.0 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-3.0.list
-RUN apt-get update
-RUN apt-get install -y mongodb-org
+RUN DEBIAN_FRONTEND=noninteractive apt-get update
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y mongodb-org
 
 # Install mysql.
-RUN apt-get install -y mysql-server
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y mysql-server
 RUN debconf-set-selections <<< 'mysql-server mysql-server/root_password password ghiromanager'
 RUN debconf-set-selections <<< 'mysql-server mysql-server/root_password_again password ghiromanager'
 RUN mysqladmin --defaults-extra-file=/etc/mysql/debian.cnf create ghiro
@@ -54,7 +54,7 @@ RUN git clone https://github.com/Ghirensics/ghiro.git /var/www/ghiro
 RUN pip install -r /var/www/ghiro/requirements.txt
 
 # Additional Mysql driver.
-RUN apt-get install libmysqlclient-dev
+RUN DEBIAN_FRONTEND=noninteractive apt-get install libmysqlclient-dev
 RUN pip install MySQL-python
 
 # Configure ghiro.
