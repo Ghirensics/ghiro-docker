@@ -43,8 +43,9 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y mongodb-org
 
 # Install mysql.
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y mysql-server
-RUN debconf-set-selections <<< 'mysql-server mysql-server/root_password password ghiromanager'
-RUN debconf-set-selections <<< 'mysql-server mysql-server/root_password_again password ghiromanager'
+RUN { echo mysql-server mysql-server/root_password password ghiromanager ''; \
+      echo mysql-server mysql-server/root_password_again password ghiromanager ''; \
+    } | debconf-set-selections
 RUN mysqladmin --defaults-extra-file=/etc/mysql/debian.cnf create ghiro
 
 # Checkout ghiro from git.
