@@ -1,15 +1,34 @@
-# Dockerizing MongoDB: Dockerfile for building MongoDB images
-# Based on ubuntu:latest, installs MongoDB following the instructions from:
-# http://docs.mongodb.org/manual/tutorial/install-mongodb-on-ubuntu/
+############################################################
+# Ghiro Dockerfile
+# https://getghiro.org
+############################################################
+#
+# Copyright (C) 2016 Alessandro Tanasi
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 
-FROM       ubuntu:latest
+FROM       ubuntu:16.04
 MAINTAINER Alessandro Tanasi <alessandro@tanasi.it>
 
-# Update repositories.
-RUN DEBIAN_FRONTEND=noninteractive apt-get update
+ENV DEBIAN_FRONTEND noninteractive
 
-# Install software
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y git locales
+# Copy requirements files.
+COPY files/*.txt /tmp/
+
+# Update repositories.
+RUN apt-get update
+
+# Setup basic deps.
+RUN apt-get update
+RUN xargs apt-get install -y < /tmp/deb-packages.txt
+RUN rm /tmp/deb-packages.txt
+RUN pip install --upgrade -r /tmp/pypi-packages.txt
+RUN rm /tmp/pypi-packages.txt
 
 # Configure timezone and locale
 RUN echo "Europe/Rome" > /etc/timezone && \
@@ -20,32 +39,12 @@ RUN export LANGUAGE=en_US.UTF-8 && \
     locale-gen en_US.UTF-8 && \
     DEBIAN_FRONTEND=noninteractive dpkg-reconfigure locales
 
-# Setup python stuff.
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y python-pip build-essential python-dev python-gi
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y libgexiv2-2 gir1.2-gexiv2-0.10
-# Pillow
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y libtiff4-dev libjpeg8-dev zlib1g-dev libfreetype6-dev liblcms2-dev libwebp-dev tcl8.5-dev tk8.5-dev python-tk
-
-# Install Apache.
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y apache2 libapache2-mod-wsgi
-
-# Install and configure wkhtmltopdf
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y wkhtmltopdf xvfb
+# Configure wkhtmltopdf
 RUN printf '#!/bin/bash\nxvfb-run --server-args="-screen 0, 1024x768x24" /usr/bin/wkhtmltopdf $*' > /usr/bin/wkhtmltopdf.sh
 RUN chmod a+x /usr/bin/wkhtmltopdf.sh
 RUN ln -s /usr/bin/wkhtmltopdf.sh /usr/local/bin/wkhtmltopdf
 
-# Install MongoDB.
-RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7F0CEB10
-RUN echo "deb http://repo.mongodb.org/apt/ubuntu "$(lsb_release -sc)"/mongodb-org/3.0 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-3.0.list
-RUN DEBIAN_FRONTEND=noninteractive apt-get update
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y mongodb-org
-
-# Install mysql.
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y mysql-server
-RUN { echo mysql-server mysql-server/root_password password ghiromanager ''; \
-      echo mysql-server mysql-server/root_password_again password ghiromanager ''; \
-    } | debconf-set-selections
+# Create mysql db.
 RUN mysqladmin --defaults-extra-file=/etc/mysql/debian.cnf create ghiro
 
 # Checkout ghiro from git.
@@ -53,10 +52,6 @@ RUN git clone https://github.com/Ghirensics/ghiro.git /var/www/ghiro
 
 # Setup python requirements using pypi.
 RUN pip install -r /var/www/ghiro/requirements.txt
-
-# Additional Mysql driver.
-RUN DEBIAN_FRONTEND=noninteractive apt-get install libmysqlclient-dev
-RUN pip install MySQL-python
 
 # Configure ghiro.
 ADD local_settings.py /var/www/ghiro/ghiro/local_settings.py
@@ -80,9 +75,6 @@ RUN a2ensite ghiro
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 EXPOSE     80
-
-VOLUME ["/var/lib/mongodb"]
-VOLUME ["/var/lib/mysql"]
 
 ADD start.sh /start.sh
 RUN chmod 0755 /start.sh
