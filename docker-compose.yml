@@ -1,5 +1,5 @@
 ghiro-mysql:
-  image: postgres:5.7
+  image: mysql:5.7
   container_name: ghiro-mysql
   net: "host"
   environment:
