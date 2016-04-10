@@ -6,7 +6,7 @@ python-dev
 python-gi
 libgexiv2-2
 gir1.2-gexiv2-0.10
-libtiff4-dev
+libtiff5-dev
 libjpeg8-dev
 zlib1g-dev
 libfreetype6-dev
