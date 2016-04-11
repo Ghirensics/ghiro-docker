@@ -1,11 +1,13 @@
-ghiro-mysql:
-  image: mysql:5.7
-  container_name: ghiro-mysql
+ghiro-pg:
+  image: postgres:9.5
+  container_name: ghiro-pg
   net: "host"
   environment:
-    - MYSQL_ROOT_PASSWORD=ghiromanager
+    - POSTGRES_USER=ghiro
+    - POSTGRES_DB=ghiro
+    - POSTGRES_PASSWORD==ghiromanager
   ports:
-    - "3306:3306"
+    - "5432:5432"
 
 ghiro-mongo:
   image: mongo:3.2
@@ -17,8 +19,9 @@ ghiro-mongo:
 ghiro:
   # Set build to "." to build the project in the local directory.
   build: .
+  container_name: ghiro
+  links:
+    - "ghiro-pg"
   ports:
     - "80:80"
   net: "host"
-
-

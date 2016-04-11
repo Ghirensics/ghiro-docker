@@ -1,1 +1,1 @@
-MySQL-python
+psycopg2

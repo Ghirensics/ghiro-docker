@@ -19,4 +19,5 @@ apache2
 libapache2-mod-wsgi
 wkhtmltopdf
 xvfb
-libmysqlclient-dev
+python-setuptools
+libpq-dev

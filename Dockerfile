@@ -16,6 +16,9 @@ FROM       ubuntu:16.04
 MAINTAINER Alessandro Tanasi <alessandro@tanasi.it>
 
 ENV DEBIAN_FRONTEND noninteractive
+ENV TIMEZONE Europe/Rome
+ENV GHIRO_PASSWORD ghiromanager
+ENV GHIRO_USER ghiro
 
 # Copy requirements files.
 COPY files/*.txt /tmp/
@@ -31,7 +34,7 @@ RUN pip install --upgrade -r /tmp/pypi-packages.txt
 RUN rm /tmp/pypi-packages.txt
 
 # Configure timezone and locale
-RUN echo "Europe/Rome" > /etc/timezone && \
+RUN echo "$TIMEZONE" > /etc/timezone && \
     dpkg-reconfigure -f noninteractive tzdata
 RUN export LANGUAGE=en_US.UTF-8 && \
     export LANG=en_US.UTF-8 && \
@@ -43,9 +46,6 @@ RUN export LANGUAGE=en_US.UTF-8 && \
 RUN printf '#!/bin/bash\nxvfb-run --server-args="-screen 0, 1024x768x24" /usr/bin/wkhtmltopdf $*' > /usr/bin/wkhtmltopdf.sh
 RUN chmod a+x /usr/bin/wkhtmltopdf.sh
 RUN ln -s /usr/bin/wkhtmltopdf.sh /usr/local/bin/wkhtmltopdf
-
-# Create mysql db.
-RUN mysqladmin --defaults-extra-file=/etc/mysql/debian.cnf create ghiro
 
 # Checkout ghiro from git.
 RUN git clone https://github.com/Ghirensics/ghiro.git /var/www/ghiro
@@ -60,7 +60,7 @@ ADD local_settings.py /var/www/ghiro/ghiro/local_settings.py
 RUN cd /var/www/ghiro && python manage.py syncdb --noinput
 
 # Create super user.
-RUN cd /var/www/ghiro && echo "from users.models import Profile; Profile.objects.create_superuser('ghiro', 'yourmail@example.com', 'ghiromanager')" | python manage.py shell
+RUN cd /var/www/ghiro && echo "from users.models import Profile; Profile.objects.create_superuser('$GHIRO_USER', 'yourmail@example.com', '$GHIRO_PASSWORD')" | python manage.py shell
 
 # Add virtualhost
 ADD ./ghiro.conf /etc/apache2/sites-available/
