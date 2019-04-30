@@ -13,3 +13,7 @@ docker-compose up -d
 ```
 
 Ghiro will then be available in your browser at [http://localhost:9991/](http://localhost:9991/)
+
+Default username: **ghiro**
+
+Default password: **ghiromanager**
