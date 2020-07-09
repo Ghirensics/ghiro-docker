@@ -34,6 +34,7 @@ COPY files/*.txt /tmp/
 RUN apt-get update \
  && xargs apt-get install -y < /tmp/deb-packages.txt \
  && rm /tmp/deb-packages.txt \
+ && pip install --upgrade pip \
  && pip install --upgrade -r /tmp/pypi-packages.txt \
  && rm /tmp/pypi-packages.txt \
  && git clone https://github.com/GrahamDumpleton/mod_wsgi.git /mod_wsgi \

@@ -17,3 +17,5 @@ Ghiro will then be available in your browser at [http://localhost:9991/](http://
 Default username: **ghiro**
 
 Default password: **ghiromanager**
+
+To upload images, place the images you want to import into the `images/` folder. In the interface, add folder `uploads/{your folder}`. To begin processing your images, `docker exec --rm -it {container_name} /usr/bin/python /var/www/ghiro/manage.py process`
