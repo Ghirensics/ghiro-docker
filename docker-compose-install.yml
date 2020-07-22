@@ -1,0 +1,9 @@
+version: '3.4' # requires docker-compose >= 1.17.0
+services:   
+  ghiro:
+    build:
+      context: .
+      args:
+        - "TZ=America/New_York"
+    image: ghiro/ghiro:latest
+    command: ['./wait-for-it.sh', 'mongo:27017', 'pg:5432', '--', "./install.sh"]

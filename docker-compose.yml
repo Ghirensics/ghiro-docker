@@ -1,27 +1,37 @@
-ghiro-pg:
-  image: postgres:9.5
-  container_name: ghiro-pg
-  net: "host"
-  environment:
-    - POSTGRES_USER=ghiro
-    - POSTGRES_DB=ghiro
-    - POSTGRES_PASSWORD==ghiromanager
-  ports:
-    - "5432:5432"
-
-ghiro-mongo:
-  image: mongo:3.2
-  container_name: ghiro-mongo
-  net: "host"
-  ports:
-    - "27017:27017"
-
-ghiro:
-  # Set build to "." to build the project in the local directory.
-  build: .
-  container_name: ghiro
-  links:
-    - "ghiro-pg"
-  ports:
-    - "80:80"
-  net: "host"
+version: '3.4' # requires docker-compose >= 1.17.0
+services:
+  pg:
+    image: postgres:9.5
+    container_name: ghiro-pg
+    volumes:
+      - 'ghiro-pg:/var/lib/postgresql/data'
+    environment:
+      - POSTGRES_USER=ghiro
+      - POSTGRES_DB=ghiro
+      - POSTGRES_PASSWORD=ghiromanager
+    ports:
+      - "5432:5432"
+  mongo:
+    image: tutum/mongodb
+    container_name: ghiro-mongo
+    volumes:
+      - 'ghiro-mongo:/data/db'
+    ports:
+      - 27017:27017
+    environment:
+      - AUTH="no"
+  ghiro:
+    image: ghiro/ghiro:latest
+    container_name: ghiro
+    volumes:
+      - './images:/var/www/ghiro/uploads'
+    links:
+      - "pg"
+      - "mongo"
+    ports:
+      - "9991:80"
+volumes:
+  ghiro-mongo:
+    driver: local
+  ghiro-pg:
+    driver: local

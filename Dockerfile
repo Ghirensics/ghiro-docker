@@ -12,70 +12,81 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
-FROM       ubuntu:16.04
-MAINTAINER Alessandro Tanasi <alessandro@tanasi.it>
-
+FROM ubuntu:16.04
+LABEL Maintainer="Jonathan Batteas <jonathanbatteas@gmail.com>"
+ARG TZ
 ENV DEBIAN_FRONTEND noninteractive
-ENV TIMEZONE Europe/Rome
+ENV TIMEZONE ${TZ}
 ENV GHIRO_PASSWORD ghiromanager
 ENV GHIRO_USER ghiro
-
+ENV APACHE_RUN_USER  www-data
+ENV APACHE_RUN_GROUP www-data
+ENV APACHE_LOG_DIR   /var/log/apache2
+ENV APACHE_PID_FILE  /var/run/apache2/apache2.pid
+ENV APACHE_RUN_DIR   /var/run/apache2
+ENV APACHE_LOCK_DIR  /var/lock/apache2
+ENV APACHE_LOG_DIR   /var/log/apache2
+ENV LOGS /logs
 # Copy requirements files.
 COPY files/*.txt /tmp/
 
-# Update repositories.
-RUN apt-get update
-
 # Setup basic deps.
-RUN apt-get update
-RUN xargs apt-get install -y < /tmp/deb-packages.txt
-RUN rm /tmp/deb-packages.txt
-RUN pip install --upgrade -r /tmp/pypi-packages.txt
-RUN rm /tmp/pypi-packages.txt
-
-# Configure timezone and locale
-RUN echo "$TIMEZONE" > /etc/timezone && \
-    dpkg-reconfigure -f noninteractive tzdata
-RUN export LANGUAGE=en_US.UTF-8 && \
-    export LANG=en_US.UTF-8 && \
-    export LC_ALL=en_US.UTF-8 && \
-    locale-gen en_US.UTF-8 && \
-    DEBIAN_FRONTEND=noninteractive dpkg-reconfigure locales
-
-# Configure wkhtmltopdf
-RUN printf '#!/bin/bash\nxvfb-run --server-args="-screen 0, 1024x768x24" /usr/bin/wkhtmltopdf $*' > /usr/bin/wkhtmltopdf.sh
-RUN chmod a+x /usr/bin/wkhtmltopdf.sh
-RUN ln -s /usr/bin/wkhtmltopdf.sh /usr/local/bin/wkhtmltopdf
+RUN apt-get update \
+ && xargs apt-get install -y < /tmp/deb-packages.txt \
+ && rm /tmp/deb-packages.txt \
+ && pip install --upgrade pip \
+ && pip install --upgrade -r /tmp/pypi-packages.txt \
+ && rm /tmp/pypi-packages.txt \
+ && git clone https://github.com/GrahamDumpleton/mod_wsgi.git /mod_wsgi \
+ && cd /mod_wsgi && ./configure \
+  --with-python=/usr/bin/python \
+ && make && make install && make clean \
+ && echo 'LoadModule wsgi_module /usr/lib/apache2/modules/mod_wsgi.so' > /etc/apache2/mods-available/wsgi.load \
+ && a2enmod wsgi \
+ # && echo 'LoadModule wsgi_module modules/mod_wsgi.so' >> /etc/apache2/apache2.conf \
+ && echo 'WSGIApplicationGroup %{GLOBAL}' >> /etc/apache2/apache2.conf \
+ && echo 'ServerName localhost' >> /etc/apache2/apache2.conf \
+ && echo "$TIMEZONE" > /etc/timezone \
+ && dpkg-reconfigure -f noninteractive tzdata \
+ && export LANGUAGE=en_US.UTF-8 \
+ && export LANG=en_US.UTF-8 \
+ && export LC_ALL=en_US.UTF-8 \
+ && locale-gen en_US.UTF-8 \
+ && DEBIAN_FRONTEND=noninteractive dpkg-reconfigure locales \
+ && printf '#!/bin/bash\nxvfb-run --server-args="-screen 0, 1024x768x24" /usr/bin/wkhtmltopdf $*' > /usr/bin/wkhtmltopdf.sh \
+ && chmod a+x /usr/bin/wkhtmltopdf.sh \
+ && ln -s /usr/bin/wkhtmltopdf.sh /usr/local/bin/wkhtmltopdf \
+ && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
+ && mkdir -p $LOGS &&  mkdir -p $APACHE_RUN_DIR && mkdir -p $APACHE_LOCK_DIR && mkdir -p $APACHE_LOG_DIR
 
 # Checkout ghiro from git.
-RUN git clone https://github.com/Ghirensics/ghiro.git /var/www/ghiro
-
-# Setup python requirements using pypi.
-RUN pip install -r /var/www/ghiro/requirements.txt
+RUN git clone https://github.com/Ghirensics/ghiro.git /var/www/ghiro \
+	&& pip install -r /var/www/ghiro/requirements.txt
 
 # Configure ghiro.
-ADD local_settings.py /var/www/ghiro/ghiro/local_settings.py
+COPY local_settings.py /var/www/ghiro/ghiro/local_settings.py
 
-# Ghiro setup.
-RUN cd /var/www/ghiro && python manage.py syncdb --noinput
+RUN mkdir /var/www/ghiro/uploads
 
-# Create super user.
-RUN cd /var/www/ghiro && echo "from users.models import Profile; Profile.objects.create_superuser('$GHIRO_USER', 'yourmail@example.com', '$GHIRO_PASSWORD')" | python manage.py shell
+VOLUME ["/var/www/ghiro/uploads"]
 
 # Add virtualhost
-ADD ./ghiro.conf /etc/apache2/sites-available/
+COPY ./ghiro.conf /etc/apache2/sites-available/ghiro.conf
 
 # Remove default virtualhost.
-RUN a2dissite 000-default
+RUN a2dissite 000-default \
+ && a2ensite ghiro \
+ && chown -R www-data:www-data /var/www/ghiro/
 
-# Enable ghiro virtualhost.
-RUN a2ensite ghiro
+EXPOSE 80
 
-# Clean-up
-RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-EXPOSE     80
-
-ADD start.sh /start.sh
+COPY start.sh /start.sh
 RUN chmod 0755 /start.sh
 CMD ["bash", "start.sh"]
+
+COPY wait-for-it.sh /wait-for-it.sh
+RUN chmod 0755 wait-for-it.sh
+
+
+COPY install.sh /install.sh
+RUN chmod 0755 /install.sh

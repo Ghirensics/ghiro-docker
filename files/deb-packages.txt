@@ -16,7 +16,7 @@ tcl8.5-dev
 tk8.5-dev
 python-tk
 apache2
-libapache2-mod-wsgi
+apache2-dev
 wkhtmltopdf
 xvfb
 python-setuptools
