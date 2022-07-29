@@ -30,6 +30,7 @@ RUN apt-get update
 RUN apt-get update
 RUN xargs apt-get install -y < /tmp/deb-packages.txt
 RUN rm /tmp/deb-packages.txt
+RUN pip install pip==20.3.4
 RUN pip install --upgrade -r /tmp/pypi-packages.txt
 RUN rm /tmp/pypi-packages.txt
 
